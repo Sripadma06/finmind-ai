@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/* Dark mode is driven by a `dark` class on <html> (set by ThemeContext), not by the OS setting alone. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Components use semantic names (bg-surface, text-muted, border-line, ...),
+ * so switching theme only swaps these variables.
+ */
+:root {
+  color-scheme: light;
+  --bg: #f3f4fb;
+  --surface: #ffffff;
+  --surface-2: #eceef8;
+  --line: #dcdff0;
+  --fg: #12142b;
+  --muted: #5a6086;
+  --brand: #5b3df5;
+  --brand-fg: #ffffff;
+  --brand-soft: #e9e5ff;
+  --brand-text: #4a2ee0;
+  --income: #0b8a63;
+  --expense: #cf2b4a;
+  --glow: rgba(91, 61, 245, 0.1);
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #080a18;
+  --surface: #11142d;
+  --surface-2: #1a1e40;
+  --line: #272c58;
+  --fg: #eceefd;
+  --muted: #9aa1cc;
+  --brand: #6d4bf0;
+  --brand-fg: #ffffff;
+  --brand-soft: #231f58;
+  --brand-text: #b3a3ff;
+  --income: #34d6a3;
+  --expense: #ff7a93;
+  --glow: rgba(124, 92, 255, 0.2);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-text: var(--brand-text);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  /* Safety net only: layouts below are built with min-w-0 / wrapping so nothing should overflow. */
+  overflow-x: clip;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background-image: radial-gradient(48rem 22rem at 85% -6rem, var(--glow), transparent 70%);
+  background-repeat: no-repeat;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* In the base layer so component utilities (e.g. outline-none on the search box) can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--brand-text);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- loading skeletons ---------- */
+.skeleton {
+  background: linear-gradient(100deg, var(--surface-2) 30%, color-mix(in srgb, var(--surface-2) 55%, var(--fg) 8%) 50%, var(--surface-2) 70%);
+  background-size: 220% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+/* ---------- motion (kept to responses to user actions plus one chart reveal) ---------- */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.anim-drawer { animation: slide-in-left 0.22s ease-out both; }
+.anim-fade { animation: fade-in 0.18s ease-out both; }
+.anim-pop { animation: pop-in 0.18s ease-out both; }
+.bar-grow { transform-origin: bottom; animation: grow-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Keep the back-to-top button clear of the cookie banner on phones. */
+.back-top { bottom: 1rem; }
+@media (max-width: 639px) {
+  html[data-banner] .back-top { bottom: 9.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

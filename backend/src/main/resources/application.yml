@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: finmind-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/finmind}
+    username: finmind
+    password: finmind_dev_password
+  jpa:
+    hibernate:
+      ddl-auto: validate        # Flyway owns the schema; Hibernate only validates it
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+finmind:
+  jwt:
+    # REQUIRED: set JWT_SECRET (>= 32 chars). There is deliberately no default.
+    secret: ${JWT_SECRET:finmind_super_secret_jwt_key_that_is_at_least_32_characters_long}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES:60}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
+
+gemini:
+  api-key: "AIzaSyB5xv8R2VH3iQv_h6mSp-Q8JSO8SxLUslo"
+  model: "gemini-3.8-flash"

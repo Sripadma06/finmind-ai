@@ -1,0 +1,20 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: finmind-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-finmind}
+      POSTGRES_USER: ${DB_USER:-finmind}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-finmind_dev_password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - finmind-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-finmind} -d ${DB_NAME:-finmind}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  finmind-pgdata:
