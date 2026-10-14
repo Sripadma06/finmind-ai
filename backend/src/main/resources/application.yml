@@ -39,4 +39,4 @@ finmind:
 
 gemini:
   api-key: "AIzaSyB5xv8R2VH3iQv_h6mSp-Q8JSO8SxLUslo"
-  model: "gemini-3.8-flash"
+  model: "gemini-1.5-flash"
