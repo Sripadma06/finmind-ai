@@ -66,8 +66,6 @@ function OperationsForm({ accounts, onDone }: { accounts: Account[]; onDone: () 
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // One Idempotency-Key per distinct request. Re-submitting the SAME form (for example after a network error)
-  // reuses the key, so the backend can never apply it twice. Changing any input makes it a new request.
   const [key, setKey] = useState(() => crypto.randomUUID())
   useEffect(() => {
     setKey(crypto.randomUUID())
@@ -173,6 +171,133 @@ function StatSkeletons() {
   )
 }
 
+/* ---------- AI advisor interactive panel ---------- */
+
+function AiAdvisorCard({ balance, currency, flow }: { balance: number; currency: string; flow: { inflow: number; outflow: number } }) {
+  const [question, setQuestion] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [response, setResponse] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const askAi = async (customPrompt?: string) => {
+    const promptToSend = customPrompt || question
+    if (!promptToSend.trim() || loading) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem('token') || ''
+      const res = await fetch('http://localhost:8080/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          message: promptToSend,
+          context: `User Balance: ${balance} ${currency}, Money In (14d): ${flow.inflow} ${currency}, Money Out (14d): ${flow.outflow} ${currency}`,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      setResponse(data.reply || 'No advice generated. Try asking a more specific question.')
+      if (!customPrompt) setQuestion('')
+    } catch (err: any) {
+      setError(err?.message || 'Failed to reach AI service.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card
+      title="FinMind AI Financial Advisor"
+      action={
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Gemini 3.8 Flash Online
+        </span>
+      }
+    >
+      <div className="space-y-4">
+        {/* Suggestion pills */}
+        <div className="flex flex-wrap gap-2 text-xs">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => askAi(`Analyze my balance of ${balance} ${currency} and recent cash flow. What should I prioritize?`)}
+            className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 font-medium text-muted transition hover:border-brand/50 hover:text-fg disabled:opacity-50"
+          >
+            💡 Analyze my balance ({formatMoney(balance, currency)})
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => askAi('Give me a simple 50/30/20 budgeting rule based on my finances.')}
+            className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 font-medium text-muted transition hover:border-brand/50 hover:text-fg disabled:opacity-50"
+          >
+            📊 50/30/20 Budgeting Rule
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => askAi('Suggest 3 quick ways to cut monthly expenses without sacrificing essentials.')}
+            className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 font-medium text-muted transition hover:border-brand/50 hover:text-fg disabled:opacity-50"
+          >
+            📉 Reduce spending habits
+          </button>
+        </div>
+
+        {/* Input box */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={question}
+            placeholder="Ask anything about your budget, savings goals, or spending..."
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && askAi()}
+            className="flex-1 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-fg outline-none transition placeholder:text-muted focus:border-brand"
+          />
+          <Button type="button" loading={loading} disabled={!question.trim()} onClick={() => askAi()}>
+            Ask AI
+          </Button>
+        </div>
+
+        {/* Output Area */}
+        {error && <ErrorMessage message={error} />}
+
+        {loading && (
+          <div className="rounded-xl border border-line bg-surface-2 p-4 text-sm text-muted animate-pulse">
+            FinMind AI is analyzing your financial records and preparing actionable recommendations...
+          </div>
+        )}
+
+        {response && !loading && (
+          <div className="rounded-xl border border-line bg-surface-2 p-4 text-sm leading-relaxed text-fg whitespace-pre-wrap">
+            <div className="mb-2 flex items-center justify-between border-b border-line pb-2">
+              <span className="font-semibold text-brand-text flex items-center gap-2">
+                <Icon name="sparkles" className="h-4 w-4" /> FinMind AI Advisor
+              </span>
+              <button
+                type="button"
+                onClick={() => setResponse(null)}
+                className="text-xs text-muted hover:text-fg"
+              >
+                Clear
+              </button>
+            </div>
+            {response}
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 /* ---------- page ---------- */
 
 export default function DashboardPage() {
@@ -227,6 +352,9 @@ export default function DashboardPage() {
           <Stat label={`Money out, ${CHART_DAYS} days`} value={recent ? formatMoney(flow.outflow, activeCurrency) : '…'} tone="text-expense" />
         </div>
       )}
+
+      {/* AI Financial Advisor section embedded directly on dashboard */}
+      <AiAdvisorCard balance={balance} currency={activeCurrency} flow={flow} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card
